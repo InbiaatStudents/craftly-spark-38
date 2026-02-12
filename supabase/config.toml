@@ -1,0 +1,4 @@
+project_id = "hdutwmtlaysovgtpdkcg"
+
+[functions.generate-landing]
+verify_jwt = false
