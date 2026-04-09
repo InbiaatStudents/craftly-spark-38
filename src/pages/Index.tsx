@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import anime from "animejs";
-import { Sparkles, Loader2 } from "lucide-react";
+import { Sparkles, Loader2, Beaker, Shield, ChevronDown, ChevronUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -9,12 +9,27 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { Switch } from "@/components/ui/switch";
+import { Slider } from "@/components/ui/slider";
+import { Separator } from "@/components/ui/separator";
 import { toast } from "@/hooks/use-toast";
 import ColorPicker from "@/components/ColorPicker";
 import FloatingShapes from "@/components/FloatingShapes";
 import { saveToHistory } from "@/lib/history";
-import type { ProjectType, StylePreference, GenerationRequest } from "@/types/landing";
+import type { ProjectType, StylePreference, PageGoal, EmotionalTone, GenerationRequest } from "@/types/landing";
 import { supabase } from "@/integrations/supabase/client";
+
+const SLIDER_LABELS: Record<string, string[]> = {
+  animation: ["Subtle", "Balanced", "Bold", "Experimental"],
+  layout: ["Simple", "Structured", "Asymmetric", "Creative Grid"],
+  modern: ["Safe", "Modern", "Trendy", "Futuristic"],
+};
+
+function sliderLabel(key: string, value: number) {
+  const labels = SLIDER_LABELS[key];
+  const idx = Math.min(Math.floor(value / 26), labels.length - 1);
+  return labels[idx];
+}
 
 export default function Index() {
   const navigate = useNavigate();
@@ -26,6 +41,15 @@ export default function Index() {
   const [description, setDescription] = useState("");
   const [style, setStyle] = useState<StylePreference>("minimal");
   const [primaryColor, setPrimaryColor] = useState("#6366f1");
+  const [pageGoal, setPageGoal] = useState<PageGoal>("sell");
+  const [targetAudience, setTargetAudience] = useState("");
+  const [emotionalTone, setEmotionalTone] = useState<EmotionalTone>("trust");
+  const [animationIntensity, setAnimationIntensity] = useState(40);
+  const [layoutComplexity, setLayoutComplexity] = useState(30);
+  const [modernLevel, setModernLevel] = useState(50);
+  const [experimentalMode, setExperimentalMode] = useState(false);
+  const [productionMode, setProductionMode] = useState(false);
+  const [showAdvanced, setShowAdvanced] = useState(false);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -59,7 +83,12 @@ export default function Index() {
 
     setLoading(true);
     try {
-      const body: GenerationRequest = { projectType, title, description, style, primaryColor };
+      const body: GenerationRequest = {
+        projectType, title, description, style, primaryColor,
+        pageGoal, targetAudience, emotionalTone,
+        animationIntensity, layoutComplexity, modernLevel,
+        experimentalMode, productionMode,
+      };
       const { data, error } = await supabase.functions.invoke("generate-landing", { body });
 
       if (error) throw error;
@@ -69,16 +98,10 @@ export default function Index() {
       const id = crypto.randomUUID();
 
       saveToHistory({
-        id,
-        projectType,
-        title,
-        style,
-        primaryColor,
-        html,
+        id, projectType, title, style, primaryColor, html,
         createdAt: new Date().toISOString(),
       });
 
-      // Store the result temporarily for the result page
       sessionStorage.setItem("landingcraft-result", JSON.stringify({ id, html, title, projectType, style, primaryColor }));
       navigate("/result");
     } catch (err: any) {
@@ -144,6 +167,43 @@ export default function Index() {
               />
             </div>
 
+            {/* Page Goal */}
+            <div className="space-y-2">
+              <Label>Page Goal</Label>
+              <Select value={pageGoal} onValueChange={(v) => setPageGoal(v as PageGoal)}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="hire">Get hired / Attract recruiters</SelectItem>
+                  <SelectItem value="sell">Sell a product or service</SelectItem>
+                  <SelectItem value="collect-emails">Collect emails / Build a list</SelectItem>
+                  <SelectItem value="impress">Impress visitors / Showcase work</SelectItem>
+                  <SelectItem value="inform">Inform / Educate audience</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Target Audience */}
+            <div className="space-y-2">
+              <Label>Target Audience</Label>
+              <Input
+                placeholder="e.g. SaaS founders, tech recruiters, design agencies..."
+                value={targetAudience}
+                onChange={(e) => setTargetAudience(e.target.value)}
+              />
+            </div>
+
+            {/* Emotional Tone */}
+            <div className="space-y-2">
+              <Label>Emotional Tone</Label>
+              <ToggleGroup type="single" value={emotionalTone} onValueChange={(v) => v && setEmotionalTone(v as EmotionalTone)} className="justify-start flex-wrap">
+                <ToggleGroupItem value="trust" className="px-3">🤝 Trust</ToggleGroupItem>
+                <ToggleGroupItem value="excitement" className="px-3">⚡ Excitement</ToggleGroupItem>
+                <ToggleGroupItem value="authority" className="px-3">👑 Authority</ToggleGroupItem>
+                <ToggleGroupItem value="warmth" className="px-3">💛 Warmth</ToggleGroupItem>
+                <ToggleGroupItem value="urgency" className="px-3">🔥 Urgency</ToggleGroupItem>
+              </ToggleGroup>
+            </div>
+
             {/* Style */}
             <div className="space-y-2">
               <Label>Style Preference</Label>
@@ -159,6 +219,93 @@ export default function Index() {
               <Label>Primary Color</Label>
               <ColorPicker value={primaryColor} onChange={setPrimaryColor} />
             </div>
+
+            <Separator />
+
+            {/* Advanced Controls Toggle */}
+            <Button
+              variant="ghost"
+              className="w-full justify-between text-muted-foreground"
+              onClick={() => setShowAdvanced(!showAdvanced)}
+            >
+              <span className="text-sm font-medium">Advanced Controls</span>
+              {showAdvanced ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+            </Button>
+
+            {showAdvanced && (
+              <div className="space-y-6 animate-fade-in">
+                {/* Animation Intensity */}
+                <div className="space-y-3">
+                  <div className="flex justify-between items-center">
+                    <Label className="text-sm">Animation Intensity</Label>
+                    <span className="text-xs font-medium text-muted-foreground bg-muted px-2 py-0.5 rounded">
+                      {sliderLabel("animation", animationIntensity)}
+                    </span>
+                  </div>
+                  <Slider
+                    value={[animationIntensity]}
+                    onValueChange={([v]) => setAnimationIntensity(v)}
+                    max={100}
+                    step={1}
+                  />
+                </div>
+
+                {/* Layout Complexity */}
+                <div className="space-y-3">
+                  <div className="flex justify-between items-center">
+                    <Label className="text-sm">Layout Complexity</Label>
+                    <span className="text-xs font-medium text-muted-foreground bg-muted px-2 py-0.5 rounded">
+                      {sliderLabel("layout", layoutComplexity)}
+                    </span>
+                  </div>
+                  <Slider
+                    value={[layoutComplexity]}
+                    onValueChange={([v]) => setLayoutComplexity(v)}
+                    max={100}
+                    step={1}
+                  />
+                </div>
+
+                {/* Modern Level */}
+                <div className="space-y-3">
+                  <div className="flex justify-between items-center">
+                    <Label className="text-sm">Modern Level</Label>
+                    <span className="text-xs font-medium text-muted-foreground bg-muted px-2 py-0.5 rounded">
+                      {sliderLabel("modern", modernLevel)}
+                    </span>
+                  </div>
+                  <Slider
+                    value={[modernLevel]}
+                    onValueChange={([v]) => setModernLevel(v)}
+                    max={100}
+                    step={1}
+                  />
+                </div>
+
+                <Separator />
+
+                {/* Mode Toggles */}
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label className="text-sm flex items-center gap-1.5">
+                      <Beaker className="h-4 w-4 text-primary" /> Experimental Mode
+                    </Label>
+                    <p className="text-xs text-muted-foreground">Glassmorphism, brutalist, animated gradients, bold typography</p>
+                  </div>
+                  <Switch checked={experimentalMode} onCheckedChange={setExperimentalMode} />
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label className="text-sm flex items-center gap-1.5">
+                      <Shield className="h-4 w-4 text-primary" /> Production Mode
+                    </Label>
+                    <p className="text-xs text-muted-foreground">SEO tags, accessibility, aria labels, OpenGraph, optimized output</p>
+                  </div>
+                  <Switch checked={productionMode} onCheckedChange={setProductionMode} />
+                </div>
+              </div>
+            )}
 
             {/* Generate */}
             <Button
