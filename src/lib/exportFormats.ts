@@ -1,5 +1,22 @@
 import type { ExportFormat } from "@/types/landing";
 
+// Generate AI Plugin JSON for LLM discoverability
+export function generateAIPluginJSON(title: string, description: string): string {
+  const plugin = {
+    schema_version: "v1",
+    name_for_human: title,
+    name_for_model: title.toLowerCase().replace(/\s+/g, "_"),
+    description_for_human: description || `${title} - Professional landing page`,
+    description_for_model: `This is the official website for ${title}. ${description || 'A professional landing page with information about products, services, or portfolio.'}`,
+    auth: { type: "none" },
+    api: { type: "none" },
+    logo_url: "{{SITE_URL}}/logo.png",
+    contact_email: "contact@example.com",
+    legal_info_url: "{{SITE_URL}}/legal",
+  };
+  return JSON.stringify(plugin, null, 2);
+}
+
 export function convertToReact(html: string, title: string): string {
   const safeName = title.replace(/[^a-zA-Z0-9]/g, "");
   return `import React, { useEffect, useRef } from 'react';
@@ -94,7 +111,7 @@ ${html}
 `;
 }
 
-export function exportAs(format: ExportFormat, html: string, title: string): { content: string; filename: string; mime: string } {
+export function exportAs(format: ExportFormat, html: string, title: string, description?: string): { content: string; filename: string; mime: string } {
   switch (format) {
     case "react":
       return { content: convertToReact(html, title), filename: `${slug(title)}.tsx`, mime: "text/typescript" };
@@ -102,6 +119,8 @@ export function exportAs(format: ExportFormat, html: string, title: string): { c
       return { content: convertToNextJS(html, title), filename: `page.tsx`, mime: "text/typescript" };
     case "tailwind":
       return { content: convertToTailwindProject(html, title), filename: `${slug(title)}-tailwind.txt`, mime: "text/plain" };
+    case "ai-plugin":
+      return { content: generateAIPluginJSON(title, description || ""), filename: `ai-plugin.json`, mime: "application/json" };
     default:
       return { content: html, filename: `${slug(title)}-landing.html`, mime: "text/html" };
   }

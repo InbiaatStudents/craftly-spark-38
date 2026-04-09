@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import anime from "animejs";
-import { Sparkles, Loader2, Beaker, Shield, ChevronDown, ChevronUp } from "lucide-react";
+import { Sparkles, Loader2, Beaker, Shield, ChevronDown, ChevronUp, User, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -15,6 +15,8 @@ import { Separator } from "@/components/ui/separator";
 import { toast } from "@/hooks/use-toast";
 import ColorPicker from "@/components/ColorPicker";
 import FloatingShapes from "@/components/FloatingShapes";
+import OnboardingModal, { type ScrapedProfileData } from "@/components/OnboardingModal";
+import WebGLBackground from "@/components/WebGLBackground";
 import { saveToHistory } from "@/lib/history";
 import type { ProjectType, StylePreference, PageGoal, EmotionalTone, GenerationRequest } from "@/types/landing";
 import { supabase } from "@/integrations/supabase/client";
@@ -51,6 +53,9 @@ export default function Index() {
   const [productionMode, setProductionMode] = useState(false);
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [showOnboarding, setShowOnboarding] = useState(false);
+  const [profileData, setProfileData] = useState<ScrapedProfileData | null>(null);
+  const [useWebGL, setUseWebGL] = useState(true);
 
   useEffect(() => {
     if (heroRef.current) {
@@ -83,11 +88,12 @@ export default function Index() {
 
     setLoading(true);
     try {
-      const body: GenerationRequest = {
+      const body: GenerationRequest & { profileData?: ScrapedProfileData } = {
         projectType, title, description, style, primaryColor,
         pageGoal, targetAudience, emotionalTone,
         animationIntensity, layoutComplexity, modernLevel,
         experimentalMode, productionMode,
+        profileData: profileData || undefined,
       };
       const { data, error } = await supabase.functions.invoke("generate-landing", { body });
 
@@ -116,9 +122,31 @@ export default function Index() {
     }
   };
 
+  const handleProfileScraped = (data: ScrapedProfileData) => {
+    setProfileData(data);
+    // Auto-fill title with name if available and title is empty
+    if (data.name && !title) {
+      setTitle(data.name);
+    }
+  };
+
+  // Show onboarding prompt for portfolio/personal projects
+  const shouldShowOnboardingPrompt = (projectType === "portfolio" || projectType === "personal") && !profileData;
+
   return (
     <div className="min-h-[calc(100vh-4rem)] flex flex-col items-center px-4 py-12 md:py-20">
-      <FloatingShapes />
+      {useWebGL ? (
+        <WebGLBackground primaryColor={primaryColor} />
+      ) : (
+        <FloatingShapes />
+      )}
+      
+      <OnboardingModal
+        open={showOnboarding}
+        onOpenChange={setShowOnboarding}
+        onProfileScraped={handleProfileScraped}
+        projectType={projectType}
+      />
 
       <div ref={heroRef} className="max-w-2xl text-center mb-12 space-y-4">
         <h1 className="hero-anim text-4xl md:text-6xl font-extrabold tracking-tight">
@@ -149,6 +177,42 @@ export default function Index() {
                 </SelectContent>
               </Select>
             </div>
+
+            {/* Profile Import for Portfolio/Personal */}
+            {shouldShowOnboardingPrompt && (
+              <div className="p-4 rounded-lg border border-dashed border-primary/30 bg-primary/5 space-y-2">
+                <p className="text-sm text-muted-foreground">
+                  Building a {projectType}? Import your profile to replace placeholder content with your real information.
+                </p>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowOnboarding(true)}
+                  className="w-full"
+                >
+                  <User className="mr-2 h-4 w-4" />
+                  Import from LinkedIn, GitHub, or X
+                </Button>
+              </div>
+            )}
+
+            {/* Profile Status */}
+            {profileData && (
+              <div className="flex items-center gap-2 p-3 rounded-lg bg-green-500/10 border border-green-500/20">
+                <CheckCircle2 className="h-4 w-4 text-green-500" />
+                <span className="text-sm text-green-700 dark:text-green-400">
+                  Profile imported: {profileData.name || "Profile data"}
+                </span>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setShowOnboarding(true)}
+                  className="ml-auto h-6 text-xs"
+                >
+                  Edit
+                </Button>
+              </div>
+            )}
 
             {/* Title */}
             <div className="space-y-2">
