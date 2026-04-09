@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Copy, Download, Monitor, Tablet, Smartphone, Check } from "lucide-react";
+import { ArrowLeft, Copy, Download, Monitor, Tablet, Smartphone, Check, Wand2 } from "lucide-react";
+import RefineSidebar from "@/components/RefineSidebar";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -29,7 +30,16 @@ export default function Result() {
   const [viewport, setViewport] = useState<string>("desktop");
   const [copied, setCopied] = useState(false);
   const [exportFormat, setExportFormat] = useState<ExportFormat>("html");
+  const [showRefine, setShowRefine] = useState(false);
   const iframeRef = useRef<HTMLIFrameElement>(null);
+
+  const handleHtmlUpdated = (newHtml: string) => {
+    if (result) {
+      const updated = { ...result, html: newHtml };
+      setResult(updated);
+      sessionStorage.setItem("landingcraft-result", JSON.stringify(updated));
+    }
+  };
 
   useEffect(() => {
     const raw = sessionStorage.getItem("landingcraft-result");
@@ -100,6 +110,7 @@ export default function Result() {
               <SelectItem value="react">React Component</SelectItem>
               <SelectItem value="nextjs">Next.js Page</SelectItem>
               <SelectItem value="tailwind">Tailwind Project</SelectItem>
+              <SelectItem value="ai-plugin">AI Plugin (AEO)</SelectItem>
             </SelectContent>
           </Select>
           <Button variant="outline" size="sm" onClick={handleCopy}>
@@ -109,8 +120,24 @@ export default function Result() {
           <Button variant="outline" size="sm" onClick={handleDownload}>
             <Download className="mr-1 h-4 w-4" /> Download
           </Button>
+          <Button 
+            variant={showRefine ? "secondary" : "default"} 
+            size="sm" 
+            onClick={() => setShowRefine(!showRefine)}
+          >
+            <Wand2 className="mr-1 h-4 w-4" /> Refine
+          </Button>
         </div>
       </div>
+      
+      {/* Refine Sidebar */}
+      <RefineSidebar
+        open={showRefine}
+        onClose={() => setShowRefine(false)}
+        currentHtml={result.html}
+        onHtmlUpdated={handleHtmlUpdated}
+        title={result.title}
+      />
 
       {/* Content */}
       <Tabs defaultValue="preview" className="flex-1 flex flex-col">

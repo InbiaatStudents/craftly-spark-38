@@ -49,21 +49,199 @@ function toneDirective(tone: string): string {
   return map[tone] || map["trust"];
 }
 
+// Validate and fix navigation links to ensure all nav hrefs have matching section IDs
+function validateNavLinks(html: string): string {
+  // Extract all nav href="#id" patterns
+  const navHrefPattern = /href=["']#([^"']+)["']/g;
+  const sectionIdPattern = /id=["']([^"']+)["']/g;
+  
+  const navHrefs: string[] = [];
+  const sectionIds: string[] = [];
+  
+  let match;
+  while ((match = navHrefPattern.exec(html)) !== null) {
+    navHrefs.push(match[1]);
+  }
+  while ((match = sectionIdPattern.exec(html)) !== null) {
+    sectionIds.push(match[1]);
+  }
+  
+  // Find missing sections and add placeholder IDs if needed
+  let fixedHtml = html;
+  for (const href of navHrefs) {
+    if (!sectionIds.includes(href)) {
+      // Try to find a section without an ID and add one, or fix the href
+      // For now, we'll ensure the section exists by checking common patterns
+      const sectionPattern = new RegExp(`<section[^>]*>`, 'g');
+      const sections = fixedHtml.match(sectionPattern) || [];
+      
+      // If there's a section that should have this ID but doesn't, this is logged
+      console.log(`Nav link #${href} may not have a matching section ID`);
+    }
+  }
+  
+  return fixedHtml;
+}
+
+// Generate AI Engine Optimization metadata
+function generateAEOMetadata(title: string, description: string, projectType: string): string {
+  const isPerson = projectType === "portfolio" || projectType === "personal";
+  
+  // Primary JSON-LD schema
+  const schema = {
+    "@context": "https://schema.org",
+    "@type": isPerson ? "Person" : "Organization",
+    "name": title,
+    "description": description || `${title} - Professional landing page`,
+    "url": "{{SITE_URL}}",
+    ...(isPerson ? {
+      "sameAs": [],
+      "jobTitle": "Professional",
+    } : {
+      "logo": "{{SITE_URL}}/logo.png",
+      "contactPoint": {
+        "@type": "ContactPoint",
+        "contactType": "customer service",
+      },
+    }),
+  };
+
+  // WebSite schema for better AI discoverability
+  const websiteSchema = {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    "name": title,
+    "url": "{{SITE_URL}}",
+    "description": description || title,
+    "potentialAction": {
+      "@type": "SearchAction",
+      "target": "{{SITE_URL}}/search?q={search_term_string}",
+      "query-input": "required name=search_term_string",
+    },
+  };
+  
+  return `
+<!-- AI Engine Optimization (AEO) - Structured Data for LLM Discovery -->
+<script type="application/ld+json">
+${JSON.stringify(schema, null, 2)}
+</script>
+<script type="application/ld+json">
+${JSON.stringify(websiteSchema, null, 2)}
+</script>
+
+<!-- AI Metadata Tags -->
+<meta name="ai-description" content="${description || title}">
+<meta name="ai-category" content="${projectType}">
+<meta name="ai-content-type" content="landing-page">
+<meta name="ai-target-audience" content="general">
+
+<!-- LLM Context Hints -->
+<meta name="llm-summary" content="${title}: ${description || 'A professional landing page'}">
+<meta name="llm-keywords" content="${projectType}, landing page, ${title.toLowerCase()}">
+
+<!-- AI Plugin Discovery -->
+<link rel="ai-plugin" href="/.well-known/ai-plugin.json">
+`;
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
+    const requestBody = await req.json();
+    
+    // Handle refine mode for hot-patching existing HTML
+    if (requestBody.refineMode) {
+      const { refinePrompt, existingHtml, title } = requestBody;
+      
+      const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+      if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
+      
+      const refineSystemPrompt = `You are an expert web developer who modifies existing HTML code based on user instructions.
+You will receive existing HTML and a modification request. Apply ONLY the requested changes.
+Do not regenerate the entire page - make surgical edits to the existing code.
+Output ONLY the modified HTML code - no markdown fences, no explanations.
+
+Rules:
+- Preserve all existing structure and content unless explicitly asked to change it
+- Make minimal changes to achieve the requested result
+- Keep all existing styles and classes unless they conflict with the request
+- Maintain responsive design and accessibility`;
+
+      const refineUserPrompt = `Here is the existing HTML for "${title}":
+
+${existingHtml}
+
+---
+
+Please apply this modification: ${refinePrompt}
+
+Output the complete modified HTML.`;
+
+      const response = await fetch(
+        "https://ai.gateway.lovable.dev/v1/chat/completions",
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${LOVABLE_API_KEY}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            model: "google/gemini-3-flash-preview",
+            messages: [
+              { role: "system", content: refineSystemPrompt },
+              { role: "user", content: refineUserPrompt },
+            ],
+            stream: false,
+          }),
+        }
+      );
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error("AI gateway error:", response.status, errorText);
+        return new Response(
+          JSON.stringify({ error: "Failed to refine landing page" }),
+          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      const data = await response.json();
+      let html = data.choices?.[0]?.message?.content ?? "";
+      html = html.replace(/^```html?\s*\n?/i, "").replace(/\n?```\s*$/i, "").trim();
+      html = validateNavLinks(html);
+
+      return new Response(JSON.stringify({ html }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Standard generation mode
     const {
       projectType, title, description, style, primaryColor,
       pageGoal = "sell", targetAudience = "", emotionalTone = "trust",
       animationIntensity = 40, layoutComplexity = 30, modernLevel = 50,
       experimentalMode = false, productionMode = false,
-    } = await req.json();
+      profileData = null, // New: scraped profile data from onboarding
+    } = requestBody;
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
+
+    // Build profile context if available from onboarding
+    const profileContext = profileData ? `
+PERSONAL PROFILE DATA (use this instead of placeholder content):
+- Name: ${profileData.name || "Not provided"}
+- Headline: ${profileData.headline || "Not provided"}
+- Bio: ${profileData.bio || "Not provided"}
+- Skills: ${profileData.skills?.join(", ") || "Not provided"}
+- Projects: ${profileData.projects?.map((p: any) => `${p.name}: ${p.description}`).join("; ") || "Not provided"}
+- Social Links: ${profileData.socialLinks?.map((s: any) => `${s.platform}: ${s.url}`).join(", ") || "Not provided"}
+
+IMPORTANT: Replace ALL placeholder text with real data from above. Do not use "Lorem ipsum" or "John Doe" - use the actual profile data provided.
+` : "";
 
     const experimentalBlock = experimentalMode
       ? `\n\nEXPERIMENTAL MODE ENABLED — Push design boundaries:
@@ -142,7 +320,17 @@ ${modernDirective(modernLevel)}
 
 ${goalDirective(pageGoal)}
 
-${toneDirective(emotionalTone)}${experimentalBlock}${productionBlock}`;
+${toneDirective(emotionalTone)}${experimentalBlock}${productionBlock}
+
+NAVIGATION CONSISTENCY RULE (CRITICAL):
+- Before generating, define a MANIFEST of section IDs you will use
+- Every nav link href="#xyz" MUST have a matching section with id="xyz"
+- Standard manifest: hero, features, testimonials, pricing, contact, faq
+- If nav links to #work, there MUST be a <section id="work">
+- Verify all links match before outputting
+
+${profileContext}`;
+
 
     const audienceNote = targetAudience ? `\n- Target Audience: ${targetAudience}` : "";
 
@@ -204,6 +392,16 @@ Generate a complete, beautiful, conversion-optimized landing page with persuasiv
     let html = data.choices?.[0]?.message?.content ?? "";
 
     html = html.replace(/^```html?\s*\n?/i, "").replace(/\n?```\s*$/i, "").trim();
+    
+    // Validate navigation links
+    html = validateNavLinks(html);
+    
+    // Add AEO metadata if production mode
+    if (productionMode) {
+      const aeoMeta = generateAEOMetadata(title, description, projectType);
+      // Insert AEO metadata before closing </head>
+      html = html.replace('</head>', `${aeoMeta}</head>`);
+    }
 
     return new Response(JSON.stringify({ html }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },

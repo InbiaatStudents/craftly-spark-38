@@ -2,7 +2,7 @@ export type ProjectType = "portfolio" | "startup" | "product" | "personal";
 export type StylePreference = "minimal" | "dark" | "colorful";
 export type PageGoal = "hire" | "sell" | "collect-emails" | "impress" | "inform";
 export type EmotionalTone = "trust" | "excitement" | "authority" | "warmth" | "urgency";
-export type ExportFormat = "html" | "react" | "nextjs" | "tailwind";
+export type ExportFormat = "html" | "react" | "nextjs" | "tailwind" | "ai-plugin";
 
 export interface GenerationRequest {
   projectType: ProjectType;
