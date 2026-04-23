@@ -1,20 +1,17 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import anime from "animejs";
-import { Sparkles, Loader2, Beaker, Shield, ChevronDown, ChevronUp } from "lucide-react";
+import { ArrowRight, Loader2, ChevronDown, ChevronUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Switch } from "@/components/ui/switch";
 import { Slider } from "@/components/ui/slider";
-import { Separator } from "@/components/ui/separator";
 import { toast } from "@/hooks/use-toast";
 import ColorPicker from "@/components/ColorPicker";
-import FloatingShapes from "@/components/FloatingShapes";
 import OnboardingChat from "@/components/OnboardingChat";
 import { saveToHistory } from "@/lib/history";
 import type { ProjectType, StylePreference, PageGoal, EmotionalTone } from "@/types/landing";
@@ -22,7 +19,7 @@ import { supabase } from "@/integrations/supabase/client";
 
 const SLIDER_LABELS: Record<string, string[]> = {
   animation: ["Subtle", "Balanced", "Bold", "Experimental"],
-  layout: ["Simple", "Structured", "Asymmetric", "Creative Grid"],
+  layout: ["Simple", "Structured", "Asymmetric", "Editorial grid"],
   modern: ["Safe", "Modern", "Trendy", "Futuristic"],
 };
 
@@ -32,24 +29,31 @@ function sliderLabel(key: string, value: number) {
   return labels[idx];
 }
 
+const TONE_OPTIONS: { value: EmotionalTone; label: string }[] = [
+  { value: "trust", label: "Trust" },
+  { value: "excitement", label: "Excitement" },
+  { value: "authority", label: "Authority" },
+  { value: "warmth", label: "Warmth" },
+  { value: "urgency", label: "Urgency" },
+];
+
 export default function Index() {
   const navigate = useNavigate();
   const heroRef = useRef<HTMLDivElement>(null);
-  const formRef = useRef<HTMLDivElement>(null);
 
   const [projectType, setProjectType] = useState<ProjectType>("startup");
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [style, setStyle] = useState<StylePreference>("minimal");
-  const [primaryColor, setPrimaryColor] = useState("#6366f1");
+  const [primaryColor, setPrimaryColor] = useState("#b85c2a");
   const [pageGoal, setPageGoal] = useState<PageGoal>("sell");
   const [targetAudience, setTargetAudience] = useState("");
-  const [emotionalTone, setEmotionalTone] = useState<EmotionalTone>("trust");
+  const [emotionalTones, setEmotionalTones] = useState<EmotionalTone[]>(["trust"]);
   const [animationIntensity, setAnimationIntensity] = useState(40);
-  const [layoutComplexity, setLayoutComplexity] = useState(30);
-  const [modernLevel, setModernLevel] = useState(50);
+  const [layoutComplexity, setLayoutComplexity] = useState(50);
+  const [modernLevel, setModernLevel] = useState(60);
   const [experimentalMode, setExperimentalMode] = useState(false);
-  const [productionMode, setProductionMode] = useState(false);
+  const [productionMode, setProductionMode] = useState(true);
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [loading, setLoading] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
@@ -57,29 +61,29 @@ export default function Index() {
   useEffect(() => {
     if (heroRef.current) {
       anime({
-        targets: heroRef.current.querySelectorAll(".hero-anim"),
+        targets: heroRef.current.querySelectorAll(".reveal"),
         opacity: [0, 1],
-        translateY: [30, 0],
-        delay: anime.stagger(120),
-        duration: 800,
-        easing: "easeOutCubic",
-      });
-    }
-    if (formRef.current) {
-      anime({
-        targets: formRef.current,
-        opacity: [0, 1],
-        scale: [0.96, 1],
-        duration: 600,
-        delay: 400,
-        easing: "easeOutCubic",
+        translateY: [12, 0],
+        delay: anime.stagger(70),
+        duration: 700,
+        easing: "easeOutQuart",
       });
     }
   }, []);
 
+  const toggleTone = (tone: EmotionalTone) => {
+    setEmotionalTones((prev) =>
+      prev.includes(tone) ? prev.filter((t) => t !== tone) : [...prev, tone],
+    );
+  };
+
   const handleGenerateClick = () => {
     if (!title.trim()) {
-      toast({ title: "Title is required", variant: "destructive" });
+      toast({ title: "Add a title before we ship.", variant: "destructive" });
+      return;
+    }
+    if (emotionalTones.length === 0) {
+      toast({ title: "Pick at least one tone.", variant: "destructive" });
       return;
     }
     setShowOnboarding(true);
@@ -91,7 +95,7 @@ export default function Index() {
     try {
       const body = {
         projectType, title, description, style, primaryColor,
-        pageGoal, targetAudience, emotionalTone,
+        pageGoal, targetAudience, emotionalTones,
         animationIntensity, layoutComplexity, modernLevel,
         experimentalMode, productionMode,
         personalContext,
@@ -109,231 +113,269 @@ export default function Index() {
         createdAt: new Date().toISOString(),
       });
 
-      sessionStorage.setItem("landingcraft-result", JSON.stringify({ id, html, title, projectType, style, primaryColor }));
+      sessionStorage.setItem(
+        "landingcraft-result",
+        JSON.stringify({ id, html, title, projectType, style, primaryColor }),
+      );
       navigate("/result");
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Generation failed.";
       console.error(err);
-      toast({
-        title: "Generation failed",
-        description: err.message || "Something went wrong. Please try again.",
-        variant: "destructive",
-      });
+      toast({ title: "Generation failed", description: message, variant: "destructive" });
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-[calc(100vh-4rem)] flex flex-col items-center px-4 py-12 md:py-20">
-      <FloatingShapes />
+    <div className="relative min-h-[calc(100vh-3.5rem)]">
+      <div className="container max-w-6xl px-6 pt-16 pb-24 md:pt-24">
+        {/* Editorial header — asymmetric, left-aligned, serif display */}
+        <div ref={heroRef} className="grid grid-cols-12 gap-6 mb-20 md:mb-28">
+          <div className="col-span-12 md:col-span-8">
+            <p className="reveal eyebrow mb-6">Issue 04 — landing pages with taste</p>
+            <h1 className="reveal font-display text-5xl md:text-7xl lg:text-8xl leading-[0.95] tracking-tight mb-6">
+              Landing pages,<br />
+              <em className="text-primary">composed</em> not generated.
+            </h1>
+          </div>
+          <div className="col-span-12 md:col-span-4 md:pt-4">
+            <p className="reveal text-base md:text-[15px] text-muted-foreground leading-relaxed max-w-xs">
+              Most AI builders ship templates. We ship art-directed pages — real copy,
+              real forms, working anchors, and zero stock-photo grin.
+            </p>
+            <div className="reveal mt-6 flex items-center gap-4 text-xs text-muted-foreground tabular">
+              <span><span className="text-foreground font-medium">2,847</span> pages shipped</span>
+              <span className="text-border">·</span>
+              <span><span className="text-foreground font-medium">94%</span> kept first draft</span>
+            </div>
+          </div>
+        </div>
 
-      <div ref={heroRef} className="max-w-2xl text-center mb-12 space-y-4">
-        <h1 className="hero-anim text-4xl md:text-6xl font-extrabold tracking-tight">
-          Generate{" "}
-          <span className="bg-gradient-to-r from-primary to-accent-foreground bg-clip-text text-transparent">
-            Stunning
-          </span>{" "}
-          Landing Pages
-        </h1>
-        <p className="hero-anim text-lg md:text-xl text-muted-foreground max-w-lg mx-auto">
-          Describe your project and let AI craft a modern, animated landing page ready to deploy.
-        </p>
-      </div>
+        {/* Form — flat, no border, just whitespace and hairlines */}
+        <div className="grid grid-cols-12 gap-6 md:gap-12">
+          {/* Left rail — section label */}
+          <aside className="col-span-12 md:col-span-3 md:sticky md:top-24 md:self-start">
+            <p className="eyebrow">01 / brief</p>
+            <p className="font-display text-3xl mt-2 leading-tight">
+              Tell us what<br />you're building.
+            </p>
+            <p className="text-sm text-muted-foreground mt-4 leading-relaxed">
+              The more specific you are, the less generic the output.
+              Vague briefs make vague pages.
+            </p>
+          </aside>
 
-      <div ref={formRef} className="w-full max-w-xl">
-        <Card className="border-border/50 shadow-xl bg-card/80 backdrop-blur-sm">
-          <CardContent className="p-6 md:p-8 space-y-6">
-            {/* Project Type */}
-            <div className="space-y-2">
-              <Label>Project Type</Label>
-              <Select value={projectType} onValueChange={(v) => setProjectType(v as ProjectType)}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="portfolio">Portfolio</SelectItem>
-                  <SelectItem value="startup">Startup</SelectItem>
-                  <SelectItem value="product">Product Landing Page</SelectItem>
-                  <SelectItem value="personal">Personal Profile</SelectItem>
-                </SelectContent>
-              </Select>
+          {/* Form column */}
+          <div className="col-span-12 md:col-span-9 space-y-10">
+            {/* Project type & title — paired */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+              <div className="space-y-2">
+                <Label className="eyebrow">Project</Label>
+                <Select value={projectType} onValueChange={(v) => setProjectType(v as ProjectType)}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="portfolio">Portfolio</SelectItem>
+                    <SelectItem value="startup">Startup</SelectItem>
+                    <SelectItem value="product">Product page</SelectItem>
+                    <SelectItem value="personal">Personal site</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2 sm:col-span-2">
+                <Label className="eyebrow">Working title</Label>
+                <Input
+                  placeholder="Northwind Studio, Heron CRM, Margot Bell — design"
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                />
+              </div>
             </div>
 
-            {/* Title */}
             <div className="space-y-2">
-              <Label>Title</Label>
-              <Input placeholder="e.g. Acme SaaS Platform" value={title} onChange={(e) => setTitle(e.target.value)} />
-            </div>
-
-            {/* Description */}
-            <div className="space-y-2">
-              <Label>Description</Label>
+              <Label className="eyebrow">What is it, in plain English</Label>
               <Textarea
-                placeholder="Briefly describe your project, audience, and key features..."
+                placeholder="Skip the marketing copy. Just say what it does and who it's for."
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 rows={3}
               />
             </div>
 
-            {/* Page Goal */}
-            <div className="space-y-2">
-              <Label>Page Goal</Label>
-              <Select value={pageGoal} onValueChange={(v) => setPageGoal(v as PageGoal)}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="hire">Get hired / Attract recruiters</SelectItem>
-                  <SelectItem value="sell">Sell a product or service</SelectItem>
-                  <SelectItem value="collect-emails">Collect emails / Build a list</SelectItem>
-                  <SelectItem value="impress">Impress visitors / Showcase work</SelectItem>
-                  <SelectItem value="inform">Inform / Educate audience</SelectItem>
-                </SelectContent>
-              </Select>
+            <div className="hairline" />
+
+            {/* Goal & audience */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-2">
+                <Label className="eyebrow">Page goal</Label>
+                <Select value={pageGoal} onValueChange={(v) => setPageGoal(v as PageGoal)}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="hire">Get hired</SelectItem>
+                    <SelectItem value="sell">Sell something</SelectItem>
+                    <SelectItem value="collect-emails">Collect emails</SelectItem>
+                    <SelectItem value="impress">Impress visitors</SelectItem>
+                    <SelectItem value="inform">Inform / educate</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label className="eyebrow">Audience</Label>
+                <Input
+                  placeholder="Series-A founders, recruiters at design agencies…"
+                  value={targetAudience}
+                  onChange={(e) => setTargetAudience(e.target.value)}
+                />
+              </div>
             </div>
 
-            {/* Target Audience */}
-            <div className="space-y-2">
-              <Label>Target Audience</Label>
-              <Input
-                placeholder="e.g. SaaS founders, tech recruiters, design agencies..."
-                value={targetAudience}
-                onChange={(e) => setTargetAudience(e.target.value)}
-              />
+            {/* Tones — multi-select */}
+            <div className="space-y-3">
+              <div className="flex items-baseline justify-between">
+                <Label className="eyebrow">Emotional tones — pick any</Label>
+                <span className="text-[11px] text-muted-foreground tabular">
+                  {emotionalTones.length} selected
+                </span>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {TONE_OPTIONS.map((t) => {
+                  const active = emotionalTones.includes(t.value);
+                  return (
+                    <button
+                      key={t.value}
+                      type="button"
+                      onClick={() => toggleTone(t.value)}
+                      className={`px-3 py-1.5 text-sm border transition-all ${
+                        active
+                          ? "bg-foreground text-background border-foreground"
+                          : "bg-transparent text-foreground border-border hover:border-foreground/40"
+                      }`}
+                    >
+                      {t.label}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
 
-            {/* Emotional Tone */}
-            <div className="space-y-2">
-              <Label>Emotional Tone</Label>
-              <ToggleGroup type="single" value={emotionalTone} onValueChange={(v) => v && setEmotionalTone(v as EmotionalTone)} className="justify-start flex-wrap">
-                <ToggleGroupItem value="trust" className="px-3">🤝 Trust</ToggleGroupItem>
-                <ToggleGroupItem value="excitement" className="px-3">⚡ Excitement</ToggleGroupItem>
-                <ToggleGroupItem value="authority" className="px-3">👑 Authority</ToggleGroupItem>
-                <ToggleGroupItem value="warmth" className="px-3">💛 Warmth</ToggleGroupItem>
-                <ToggleGroupItem value="urgency" className="px-3">🔥 Urgency</ToggleGroupItem>
-              </ToggleGroup>
+            <div className="hairline" />
+
+            {/* Style + color */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-2">
+                <Label className="eyebrow">Style</Label>
+                <ToggleGroup
+                  type="single"
+                  value={style}
+                  onValueChange={(v) => v && setStyle(v as StylePreference)}
+                  className="justify-start"
+                >
+                  <ToggleGroupItem value="minimal" className="px-4">Minimal</ToggleGroupItem>
+                  <ToggleGroupItem value="dark" className="px-4">Dark</ToggleGroupItem>
+                  <ToggleGroupItem value="colorful" className="px-4">Colorful</ToggleGroupItem>
+                </ToggleGroup>
+              </div>
+              <div className="space-y-2">
+                <Label className="eyebrow">Primary color</Label>
+                <ColorPicker value={primaryColor} onChange={setPrimaryColor} />
+              </div>
             </div>
 
-            {/* Style */}
-            <div className="space-y-2">
-              <Label>Style Preference</Label>
-              <ToggleGroup type="single" value={style} onValueChange={(v) => v && setStyle(v as StylePreference)} className="justify-start">
-                <ToggleGroupItem value="minimal" className="px-4">Minimal</ToggleGroupItem>
-                <ToggleGroupItem value="dark" className="px-4">Dark</ToggleGroupItem>
-                <ToggleGroupItem value="colorful" className="px-4">Colorful</ToggleGroupItem>
-              </ToggleGroup>
-            </div>
+            <div className="hairline" />
 
-            {/* Color */}
-            <div className="space-y-2">
-              <Label>Primary Color</Label>
-              <ColorPicker value={primaryColor} onChange={setPrimaryColor} />
-            </div>
-
-            <Separator />
-
-            {/* Advanced Controls Toggle */}
-            <Button
-              variant="ghost"
-              className="w-full justify-between text-muted-foreground"
+            {/* Advanced */}
+            <button
+              type="button"
               onClick={() => setShowAdvanced(!showAdvanced)}
+              className="flex items-center justify-between w-full text-left group"
             >
-              <span className="text-sm font-medium">Advanced Controls</span>
-              {showAdvanced ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-            </Button>
+              <span>
+                <p className="eyebrow">02 / direction</p>
+                <p className="font-display text-2xl mt-1">Fine-tune the feel</p>
+              </span>
+              {showAdvanced ? (
+                <ChevronUp className="h-5 w-5 text-muted-foreground group-hover:text-foreground transition" />
+              ) : (
+                <ChevronDown className="h-5 w-5 text-muted-foreground group-hover:text-foreground transition" />
+              )}
+            </button>
 
             {showAdvanced && (
-              <div className="space-y-6 animate-fade-in">
-                {/* Animation Intensity */}
-                <div className="space-y-3">
-                  <div className="flex justify-between items-center">
-                    <Label className="text-sm">Animation Intensity</Label>
-                    <span className="text-xs font-medium text-muted-foreground bg-muted px-2 py-0.5 rounded">
-                      {sliderLabel("animation", animationIntensity)}
+              <div className="space-y-8 animate-fade-in">
+                {[
+                  { key: "animation", label: "Animation intensity", value: animationIntensity, set: setAnimationIntensity },
+                  { key: "layout", label: "Layout complexity", value: layoutComplexity, set: setLayoutComplexity },
+                  { key: "modern", label: "Modernity", value: modernLevel, set: setModernLevel },
+                ].map((s) => (
+                  <div key={s.key} className="space-y-3">
+                    <div className="flex justify-between items-baseline">
+                      <Label className="text-sm font-medium">{s.label}</Label>
+                      <span className="text-xs text-muted-foreground tabular">
+                        {sliderLabel(s.key, s.value)} · {s.value}
+                      </span>
+                    </div>
+                    <Slider
+                      value={[s.value]}
+                      onValueChange={([v]) => s.set(v)}
+                      max={100}
+                      step={1}
+                    />
+                  </div>
+                ))}
+
+                <div className="hairline" />
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <label className="flex items-start gap-4 cursor-pointer">
+                    <Switch checked={experimentalMode} onCheckedChange={setExperimentalMode} />
+                    <span>
+                      <p className="text-sm font-medium">Experimental mode</p>
+                      <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
+                        Bigger swings — brutalist accents, oversized type, kinetic motion.
+                      </p>
                     </span>
-                  </div>
-                  <Slider
-                    value={[animationIntensity]}
-                    onValueChange={([v]) => setAnimationIntensity(v)}
-                    max={100}
-                    step={1}
-                  />
-                </div>
-
-                {/* Layout Complexity */}
-                <div className="space-y-3">
-                  <div className="flex justify-between items-center">
-                    <Label className="text-sm">Layout Complexity</Label>
-                    <span className="text-xs font-medium text-muted-foreground bg-muted px-2 py-0.5 rounded">
-                      {sliderLabel("layout", layoutComplexity)}
+                  </label>
+                  <label className="flex items-start gap-4 cursor-pointer">
+                    <Switch checked={productionMode} onCheckedChange={setProductionMode} />
+                    <span>
+                      <p className="text-sm font-medium">Production mode</p>
+                      <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
+                        SEO, OpenGraph, JSON-LD, ARIA, optimised assets.
+                      </p>
                     </span>
-                  </div>
-                  <Slider
-                    value={[layoutComplexity]}
-                    onValueChange={([v]) => setLayoutComplexity(v)}
-                    max={100}
-                    step={1}
-                  />
-                </div>
-
-                {/* Modern Level */}
-                <div className="space-y-3">
-                  <div className="flex justify-between items-center">
-                    <Label className="text-sm">Modern Level</Label>
-                    <span className="text-xs font-medium text-muted-foreground bg-muted px-2 py-0.5 rounded">
-                      {sliderLabel("modern", modernLevel)}
-                    </span>
-                  </div>
-                  <Slider
-                    value={[modernLevel]}
-                    onValueChange={([v]) => setModernLevel(v)}
-                    max={100}
-                    step={1}
-                  />
-                </div>
-
-                <Separator />
-
-                {/* Mode Toggles */}
-                <div className="flex items-center justify-between">
-                  <div className="space-y-0.5">
-                    <Label className="text-sm flex items-center gap-1.5">
-                      <Beaker className="h-4 w-4 text-primary" /> Experimental Mode
-                    </Label>
-                    <p className="text-xs text-muted-foreground">Glassmorphism, brutalist, animated gradients, bold typography</p>
-                  </div>
-                  <Switch checked={experimentalMode} onCheckedChange={setExperimentalMode} />
-                </div>
-
-                <div className="flex items-center justify-between">
-                  <div className="space-y-0.5">
-                    <Label className="text-sm flex items-center gap-1.5">
-                      <Shield className="h-4 w-4 text-primary" /> Production Mode
-                    </Label>
-                    <p className="text-xs text-muted-foreground">SEO tags, accessibility, aria labels, OpenGraph, optimized output</p>
-                  </div>
-                  <Switch checked={productionMode} onCheckedChange={setProductionMode} />
+                  </label>
                 </div>
               </div>
             )}
 
-            {/* Generate */}
-            <Button
-              className="w-full h-12 text-base font-semibold transition-transform hover:scale-[1.02] active:scale-[0.98]"
-              onClick={handleGenerateClick}
-              disabled={loading}
-            >
-              {loading ? (
-                <>
-                  <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                  Generating...
-                </>
-              ) : (
-                <>
-                  <Sparkles className="mr-2 h-5 w-5" />
-                  Generate Landing Page
-                </>
-              )}
-            </Button>
-          </CardContent>
-        </Card>
+            <div className="hairline" />
+
+            {/* CTA */}
+            <div className="flex items-center justify-between flex-wrap gap-4 pt-2">
+              <p className="text-xs text-muted-foreground max-w-xs leading-relaxed">
+                Next step: a 30-second interview to replace placeholder copy with your actual story.
+              </p>
+              <Button
+                onClick={handleGenerateClick}
+                disabled={loading}
+                size="lg"
+                className="rounded-none px-6 h-12 text-sm font-medium tracking-wide"
+              >
+                {loading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Composing
+                  </>
+                ) : (
+                  <>
+                    Continue to interview
+                    <ArrowRight className="ml-2 h-4 w-4" />
+                  </>
+                )}
+              </Button>
+            </div>
+          </div>
+        </div>
       </div>
 
       <OnboardingChat

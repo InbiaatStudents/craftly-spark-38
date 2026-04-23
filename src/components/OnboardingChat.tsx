@@ -3,7 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
-import { Sparkles, ArrowRight, SkipForward } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 
 interface Props {
   open: boolean;
@@ -14,35 +14,35 @@ interface Props {
 
 const QUESTIONS_BY_TYPE: Record<string, { intro: string; prompts: string[] }> = {
   portfolio: {
-    intro: "Let's make this a real portfolio — not a template. Drop links or a quick bio and I'll bake your actual wins into the page.",
+    intro: "30 seconds. Drop links and we'll bake your real wins in — no Lorem Ipsum, no fake clients.",
     prompts: [
-      "LinkedIn / GitHub / X / personal site URLs",
+      "LinkedIn / GitHub / X / personal site",
       "2–3 projects you're proudest of (name + 1-line outcome)",
-      "Your role, years of experience, key tech stack",
+      "Role, years of experience, key stack",
     ],
   },
   startup: {
-    intro: "Tell me about the company so the copy isn't generic SaaS-speak.",
+    intro: "So the copy isn't generic SaaS-speak. The more specific, the less template-y the output.",
     prompts: [
-      "Founders & team — names, roles, any notable past companies",
-      "Real traction (users, revenue, partners) you're comfortable sharing",
-      "1-line on the unfair advantage / why now",
+      "Founders & team — names, roles, notable past companies",
+      "Real traction (users, revenue, partners) you'd happily share publicly",
+      "Why now — your unfair advantage in one line",
     ],
   },
   product: {
-    intro: "Give me the real product details so we replace 'Lorem ipsum' with concrete benefits.",
+    intro: "Real product details replace placeholder copy with concrete benefits.",
     prompts: [
-      "Top 3 benefits (outcomes for the user, not features)",
+      "Top 3 outcomes for the user (not features)",
       "Pricing model and any real numbers",
       "1–2 real customer quotes or use cases",
     ],
   },
   personal: {
-    intro: "Help me make this feel like *you*, not a template.",
+    intro: "Make it feel like you, not a template.",
     prompts: [
-      "Links: LinkedIn / GitHub / X / blog",
+      "LinkedIn / GitHub / X / blog",
       "What you're working on now",
-      "One thing people often ask you about",
+      "What people often ask you about",
     ],
   },
 };
@@ -62,35 +62,33 @@ export default function OnboardingChat({ open, onClose, onSubmit, projectType }:
     onSubmit(parts.join("\n\n"));
   };
 
-  const handleSkip = () => {
-    onSubmit("");
-  };
+  const handleSkip = () => onSubmit("");
 
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
-      <DialogContent className="max-w-lg">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Sparkles className="h-5 w-5 text-primary" />
-            Quick interview — make it real
+      <DialogContent className="max-w-lg rounded-none border-foreground/10">
+        <DialogHeader className="space-y-3">
+          <p className="eyebrow">03 / interview</p>
+          <DialogTitle className="font-display text-3xl leading-tight">
+            One quick pass before we ship.
           </DialogTitle>
-          <DialogDescription>{config.intro}</DialogDescription>
+          <DialogDescription className="text-sm leading-relaxed">{config.intro}</DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4 py-2">
+        <div className="space-y-5 py-3">
           <div className="space-y-1.5">
-            <label className="text-xs font-medium text-muted-foreground">{config.prompts[0]}</label>
+            <label className="eyebrow">{config.prompts[0]}</label>
             <Input
-              placeholder="https://linkedin.com/in/... , https://github.com/..."
+              placeholder="https://linkedin.com/in/… , https://github.com/…"
               value={urls}
               onChange={(e) => setUrls(e.target.value)}
             />
           </div>
 
           <div className="space-y-1.5">
-            <label className="text-xs font-medium text-muted-foreground">{config.prompts[1]}</label>
+            <label className="eyebrow">{config.prompts[1]}</label>
             <Textarea
-              placeholder="Paste a short bio, project list, or About Me text..."
+              placeholder="Paste a short bio, project list, or About section…"
               value={bio}
               onChange={(e) => setBio(e.target.value)}
               rows={4}
@@ -98,9 +96,9 @@ export default function OnboardingChat({ open, onClose, onSubmit, projectType }:
           </div>
 
           <div className="space-y-1.5">
-            <label className="text-xs font-medium text-muted-foreground">{config.prompts[2] ?? "Anything else?"}</label>
+            <label className="eyebrow">{config.prompts[2] ?? "Anything else?"}</label>
             <Textarea
-              placeholder="Optional — anything else that should appear on the page"
+              placeholder="Optional — anything else worth surfacing"
               value={extras}
               onChange={(e) => setExtras(e.target.value)}
               rows={2}
@@ -108,14 +106,13 @@ export default function OnboardingChat({ open, onClose, onSubmit, projectType }:
           </div>
         </div>
 
-        <div className="flex justify-between gap-2 pt-2">
-          <Button variant="ghost" onClick={handleSkip}>
-            <SkipForward className="mr-1.5 h-4 w-4" />
+        <div className="flex justify-between gap-2 pt-2 border-t border-border">
+          <Button variant="ghost" onClick={handleSkip} className="text-xs text-muted-foreground">
             Skip — use placeholders
           </Button>
-          <Button onClick={handleContinue}>
-            Generate with my info
-            <ArrowRight className="ml-1.5 h-4 w-4" />
+          <Button onClick={handleContinue} className="rounded-none">
+            Ship it
+            <ArrowRight className="ml-2 h-4 w-4" />
           </Button>
         </div>
       </DialogContent>
