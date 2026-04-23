@@ -15,6 +15,7 @@ import { Separator } from "@/components/ui/separator";
 import { toast } from "@/hooks/use-toast";
 import ColorPicker from "@/components/ColorPicker";
 import FloatingShapes from "@/components/FloatingShapes";
+import OnboardingChat from "@/components/OnboardingChat";
 import { saveToHistory } from "@/lib/history";
 import type { ProjectType, StylePreference, PageGoal, EmotionalTone, GenerationRequest } from "@/types/landing";
 import { supabase } from "@/integrations/supabase/client";
@@ -51,6 +52,7 @@ export default function Index() {
   const [productionMode, setProductionMode] = useState(false);
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [showOnboarding, setShowOnboarding] = useState(false);
 
   useEffect(() => {
     if (heroRef.current) {
@@ -75,19 +77,24 @@ export default function Index() {
     }
   }, []);
 
-  const handleGenerate = async () => {
+  const handleGenerateClick = () => {
     if (!title.trim()) {
       toast({ title: "Title is required", variant: "destructive" });
       return;
     }
+    setShowOnboarding(true);
+  };
 
+  const runGeneration = async (personalContext: string) => {
+    setShowOnboarding(false);
     setLoading(true);
     try {
-      const body: GenerationRequest = {
+      const body = {
         projectType, title, description, style, primaryColor,
         pageGoal, targetAudience, emotionalTone,
         animationIntensity, layoutComplexity, modernLevel,
         experimentalMode, productionMode,
+        personalContext,
       };
       const { data, error } = await supabase.functions.invoke("generate-landing", { body });
 
@@ -310,7 +317,7 @@ export default function Index() {
             {/* Generate */}
             <Button
               className="w-full h-12 text-base font-semibold transition-transform hover:scale-[1.02] active:scale-[0.98]"
-              onClick={handleGenerate}
+              onClick={handleGenerateClick}
               disabled={loading}
             >
               {loading ? (
@@ -328,6 +335,13 @@ export default function Index() {
           </CardContent>
         </Card>
       </div>
+
+      <OnboardingChat
+        open={showOnboarding}
+        onClose={() => setShowOnboarding(false)}
+        onSubmit={runGeneration}
+        projectType={projectType}
+      />
     </div>
   );
 }
