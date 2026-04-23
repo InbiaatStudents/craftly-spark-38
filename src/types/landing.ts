@@ -12,7 +12,8 @@ export interface GenerationRequest {
   primaryColor: string;
   pageGoal: PageGoal;
   targetAudience: string;
-  emotionalTone: EmotionalTone;
+  // Now multi-select — users blend tones (e.g. trust + authority)
+  emotionalTones: EmotionalTone[];
   animationIntensity: number; // 0-100
   layoutComplexity: number; // 0-100
   modernLevel: number; // 0-100
