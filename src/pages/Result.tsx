@@ -6,6 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "@/hooks/use-toast";
 import { exportAs } from "@/lib/exportFormats";
+import RefineSidebar from "@/components/RefineSidebar";
 import type { ExportFormat } from "@/types/landing";
 
 interface ResultData {
@@ -29,7 +30,15 @@ export default function Result() {
   const [viewport, setViewport] = useState<string>("desktop");
   const [copied, setCopied] = useState(false);
   const [exportFormat, setExportFormat] = useState<ExportFormat>("html");
+  const [refineOpen, setRefineOpen] = useState(false);
   const iframeRef = useRef<HTMLIFrameElement>(null);
+
+  const handlePatched = (newHtml: string) => {
+    if (!result) return;
+    const updated = { ...result, html: newHtml };
+    setResult(updated);
+    sessionStorage.setItem("landingcraft-result", JSON.stringify(updated));
+  };
 
   useEffect(() => {
     const raw = sessionStorage.getItem("landingcraft-result");
@@ -142,6 +151,13 @@ export default function Result() {
           </pre>
         </TabsContent>
       </Tabs>
+
+      <RefineSidebar
+        html={result.html}
+        onPatched={handlePatched}
+        open={refineOpen}
+        onToggle={() => setRefineOpen((v) => !v)}
+      />
     </div>
   );
 }
