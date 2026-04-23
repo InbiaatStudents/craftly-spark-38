@@ -29,24 +29,159 @@ function modernDirective(level: number): string {
 
 function goalDirective(goal: string): string {
   const map: Record<string, string> = {
-    "hire": `Optimize for HIRING: Include a prominent "Download Resume" or "Contact Me" CTA. Showcase skills with progress indicators or tech stack icons. Add a timeline of experience. Include testimonials from colleagues/clients. Social links prominent. The hero should position the person as the solution to a hiring need.`,
-    "sell": `Optimize for SELLING: Lead with the #1 benefit, not features. Include pricing section with 3 tiers (highlight middle). Add urgency (limited offer, countdown concept). Social proof with customer logos, star ratings, "X,000+ customers" badge. Multiple CTAs throughout. FAQ section addressing objections. Money-back guarantee badge.`,
-    "collect-emails": `Optimize for EMAIL COLLECTION: Hero CTA is an email input + submit button. Offer a compelling lead magnet ("Free guide", "Exclusive access"). Minimal friction — short form. Add trust badges and privacy note. Include "Join X,000+ subscribers" social proof. Secondary CTA at bottom. Benefit bullets near the form.`,
-    "impress": `Optimize for IMPRESSION: Portfolio showcase with large visuals. Case study highlights with metrics. Awards/recognition section. Smooth premium animations. High-end design feel. Testimonials from notable clients/companies. Stats section (projects, clients, years). Minimal text, maximum visual impact.`,
-    "inform": `Optimize for INFORMATION: Clear content hierarchy with scannable sections. Feature comparison tables. Detailed "How it Works" section (3-5 steps). Knowledge base preview or blog section. FAQ accordion. Resource download links. Newsletter signup as secondary CTA.`,
+    "hire": `Optimize for HIRING: Include a prominent "Download Resume" or "Contact Me" CTA. Showcase skills with progress indicators or tech stack icons. Add a timeline of experience. Include testimonials from colleagues/clients. Social links prominent.`,
+    "sell": `Optimize for SELLING: Lead with the #1 benefit, not features. Include pricing section with 3 tiers (highlight middle). Social proof with customer logos, star ratings. Multiple CTAs throughout. FAQ section addressing objections.`,
+    "collect-emails": `Optimize for EMAIL COLLECTION: Hero CTA is an email input + submit button. Offer a compelling lead magnet. Minimal friction. Trust badges and privacy note. "Join X,000+ subscribers" social proof.`,
+    "impress": `Optimize for IMPRESSION: Portfolio showcase with large visuals. Case study highlights with metrics. Awards/recognition section. Premium animations. Stats section.`,
+    "inform": `Optimize for INFORMATION: Clear content hierarchy with scannable sections. Feature comparison tables. Detailed "How it Works" section. FAQ accordion.`,
   };
   return map[goal] || map["sell"];
 }
 
 function toneDirective(tone: string): string {
   const map: Record<string, string> = {
-    "trust": `Convey TRUST: Use calm, confident language. Include security badges, client logos, certifications. Testimonials with real names and photos. "Trusted by X companies" stats. Professional, measured copy — no hype. Blue/green accent undertones work well.`,
-    "excitement": `Convey EXCITEMENT: Use energetic, dynamic language. Exclamation points sparingly but effectively. Action verbs (Launch, Transform, Ignite). Vibrant colors, bold contrasts. Animated elements that feel alive. "Join the revolution" energy.`,
-    "authority": `Convey AUTHORITY: Use strong, definitive language. Data-driven claims with specific numbers. Industry awards and media mentions. Expert testimonials. White papers or case study references. Dark, sophisticated color palette. Premium typography.`,
-    "warmth": `Convey WARMTH: Use friendly, approachable language. First-person plural ("We believe..."). Rounded shapes, warm colors. Soft imagery concepts. Community-focused messaging. "Built with love" personality. Human-centered design.`,
-    "urgency": `Convey URGENCY: Use time-sensitive language. Countdown references. "Limited spots", "Don't miss out", "Act now". Bold CTAs with contrasting colors. Scarcity indicators. Short, punchy sentences. High contrast design. Red/orange accent highlights.`,
+    "trust": `Convey TRUST: Calm, confident language. Security badges, client logos. Testimonials with real names and photos. Professional, measured copy.`,
+    "excitement": `Convey EXCITEMENT: Energetic, dynamic language. Action verbs (Launch, Transform, Ignite). Vibrant colors, bold contrasts.`,
+    "authority": `Convey AUTHORITY: Strong, definitive language. Data-driven claims. Industry awards. Dark, sophisticated palette. Premium typography.`,
+    "warmth": `Convey WARMTH: Friendly, approachable language. Rounded shapes, warm colors. Community-focused. Human-centered design.`,
+    "urgency": `Convey URGENCY: Time-sensitive language. Bold CTAs with contrasting colors. Scarcity indicators. Red/orange accents.`,
   };
   return map[tone] || map["trust"];
+}
+
+const TASTE_DIRECTIVE = `
+DESIGN TASTE — AGGRESSIVELY BREAK AI DEFAULTS (mandatory):
+Standard AI output collapses into clichés. You must avoid ALL of:
+- Generic centered dark hero with a single big headline + two buttons (overused)
+- Repeated left-text / right-image feature rows
+- Generic 3-column "icon + title + paragraph" card spam
+- Weak typographic hierarchy (everything similar size)
+- Cramped or vague spacing
+- Lorem-ipsum-feeling filler copy
+- Predictable purple-on-white SaaS look
+
+Instead the output MUST feel:
+- PREMIUM and ART-DIRECTED (like a brand, not a template)
+- READABLE with strong type hierarchy: a true display scale (clamp() fluid type, hero 5xl–8xl, h2 3xl–5xl, body relaxed leading)
+- BREATHABLE: generous section padding (py-24 md:py-32), generous container max-widths, intentional negative space
+- STRUCTURED with rhythm: sections feel composed, not stacked
+- EDITORIAL touches where appropriate: large numerals, oversized quote marks, mixed alignment, eyebrow labels in uppercase tracking-wider
+- ASYMMETRIC at least once: break the grid in one section (offset image, overlapping card, sidebar caption)
+- TYPOGRAPHIC variety: pair a strong display feel (e.g. Space Grotesk / Fraunces / Instrument Serif via Google Fonts) with a clean body font (Inter)
+- Use real, specific copy with concrete metrics and named testimonials — never "Lorem ipsum"
+
+Aim for the visual quality of an award-winning agency landing page, not a generic template.
+`;
+
+const MANIFEST_DIRECTIVE = `
+NAVIGATION INTEGRITY (CRITICAL):
+Before writing the final HTML, mentally build a SECTION MANIFEST: a list of every section id you will use (e.g. "hero", "features", "pricing", "testimonials", "faq", "contact").
+Then guarantee:
+- EVERY anchor in <nav> (href="#xxx") matches an existing <section id="xxx"> in the body
+- No href points to an id that does not exist
+- All ids are lowercase-kebab-case and unique
+- The first <section> in main has its id referenced by the "logo"/"home" link if present
+Verify this mapping before output. Broken anchors are a hard failure.
+`;
+
+const FUNCTIONAL_FORMS_DIRECTIVE = `
+FUNCTIONAL FORMS (CRITICAL — forms must actually work):
+- Contact forms MUST submit to a real endpoint. Use Formspree's universal demo endpoint:
+  <form action="https://formspree.io/f/xpzgwqkv" method="POST">
+  with proper name attributes on inputs (name="email", name="name", name="message") and a hidden <input type="hidden" name="_subject" value="New message from <site title>">.
+- Email-capture forms can use the same Formspree action, or a mailto: action as fallback.
+- Show inline success state via small JS: intercept submit, fetch() to the action with FormData, then swap the form for a "Thanks — we'll be in touch." panel.
+- All buttons that look like CTAs must have an href to a real anchor (#contact, #pricing) or to mailto:hello@example.com — never href="#" or empty.
+- "Download Resume" buttons should link to "#" replaced with a comment like /* TODO: real resume URL */ but include a working mailto: fallback.
+`;
+
+function buildSystemPrompt(opts: {
+  animationIntensity: number; layoutComplexity: number; modernLevel: number;
+  pageGoal: string; emotionalTone: string;
+  experimentalMode: boolean; productionMode: boolean;
+}) {
+  const experimentalBlock = opts.experimentalMode
+    ? `\n\nEXPERIMENTAL MODE ENABLED — Push design boundaries: glassmorphism (backdrop-blur), animated gradient backgrounds, split-screen hero, oversized typography (6xl–9xl), brutalist accents (raw borders, stark contrasts), morphing SVG shapes, grain texture overlays, neon glow, clip-path section dividers.`
+    : "";
+  const productionBlock = opts.productionMode
+    ? `\n\nPRODUCTION MODE ENABLED — Output must be production-ready: full <head> meta (charset, viewport, description, keywords, author), OpenGraph + Twitter Card tags, JSON-LD structured data (Organization or Person), aria-labels on all interactive elements, semantic HTML, WCAG AA contrast, alt text on all visuals, loading="lazy" below-fold, preconnect to CDN origins, /.well-known/ai-plugin.json mention in a comment.`
+    : "";
+
+  return `You are an elite web designer and conversion copywriter. You output ONLY raw HTML — no markdown fences, no commentary.
+
+${TASTE_DIRECTIVE}
+
+${MANIFEST_DIRECTIVE}
+
+${FUNCTIONAL_FORMS_DIRECTIVE}
+
+COPYWRITING:
+- BENEFIT-DRIVEN headlines (6–10 words, punchy)
+- Realistic, specific metrics ("99.9% uptime", "10,000+ teams")
+- Named testimonials (real-sounding names, roles, companies)
+- Power verbs: Transform, Unlock, Ship, Accelerate
+
+SOCIAL PROOF (include ≥2 patterns): logo bar, star ratings + review count, metric badges, testimonial cards with avatar/name/role, "as seen in" media logos.
+
+COMPONENT MENU — pick variants intentionally (don't always pick #1):
+Heroes: split with image | full-bleed editorial | asymmetric with floating UI | dark with kinetic type | minimal with oversized number
+Features: bento grid | alternating image-text | tabbed | comparison table | numbered editorial list
+Social Proof: logo bar | testimonial grid | stats counter | case study cards
+Pricing (if sell): 3-tier with highlighted middle | comparison table | single plan
+CTA: email capture | full-width gradient banner | sticky | split with benefits
+
+TECHNICAL:
+- Self-contained HTML5
+- TailwindCSS via CDN: <script src="https://cdn.tailwindcss.com"></script>
+- Anime.js via CDN: <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.2/anime.min.js"></script>
+- Google Fonts (Inter + one display font)
+- Mobile-first responsive
+- Apply user's primary color across backgrounds, accents, gradients
+- Subtle shadows, intentional radii
+
+${animationDirective(opts.animationIntensity)}
+
+${layoutDirective(opts.layoutComplexity)}
+
+${modernDirective(opts.modernLevel)}
+
+${goalDirective(opts.pageGoal)}
+
+${toneDirective(opts.emotionalTone)}${experimentalBlock}${productionBlock}`;
+}
+
+// Post-process: extract nav anchors and ensure each has a matching section id.
+// If missing, append placeholder sections so links never 404 in-page.
+function repairNavManifest(html: string): string {
+  try {
+    const navMatch = html.match(/<nav[\s\S]*?<\/nav>/i);
+    if (!navMatch) return html;
+    const navBlock = navMatch[0];
+    const anchorRe = /href\s*=\s*["']#([a-zA-Z0-9_-]+)["']/g;
+    const anchors = new Set<string>();
+    let m: RegExpExecArray | null;
+    while ((m = anchorRe.exec(navBlock)) !== null) {
+      const id = m[1];
+      if (id && id !== "" && id !== "top") anchors.add(id);
+    }
+    const missing: string[] = [];
+    anchors.forEach((id) => {
+      const re = new RegExp(`id\\s*=\\s*["']${id}["']`, "i");
+      if (!re.test(html)) missing.push(id);
+    });
+    if (!missing.length) return html;
+    const stub = missing
+      .map(
+        (id) =>
+          `<section id="${id}" class="py-20 px-6 max-w-6xl mx-auto"><h2 class="text-3xl font-bold mb-4 capitalize">${id.replace(/-/g, " ")}</h2><p class="text-muted-foreground">Section content.</p></section>`
+      )
+      .join("\n");
+    if (/<\/main>/i.test(html)) return html.replace(/<\/main>/i, `${stub}\n</main>`);
+    if (/<\/body>/i.test(html)) return html.replace(/<\/body>/i, `${stub}\n</body>`);
+    return html + stub;
+  } catch {
+    return html;
+  }
 }
 
 serve(async (req) => {
@@ -55,98 +190,55 @@ serve(async (req) => {
   }
 
   try {
-    const {
-      projectType, title, description, style, primaryColor,
-      pageGoal = "sell", targetAudience = "", emotionalTone = "trust",
-      animationIntensity = 40, layoutComplexity = 30, modernLevel = 50,
-      experimentalMode = false, productionMode = false,
-    } = await req.json();
+    const body = await req.json();
+    const action: string = body.action || "generate";
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
-    const experimentalBlock = experimentalMode
-      ? `\n\nEXPERIMENTAL MODE ENABLED — Push design boundaries:
-- Use glassmorphism (backdrop-blur, semi-transparent backgrounds, frosted glass cards)
-- Animated gradient backgrounds (CSS @keyframes rotating gradients)
-- Split-screen / asymmetric hero layouts
-- Bold, oversized typography (6xl-9xl for hero text)
-- Try brutalist elements: raw borders, stark contrasts, unconventional spacing
-- Morphing SVG shapes in background
-- Noise/grain texture overlays using CSS
-- Neon glow effects on text and borders
-- Variable font weight animations
-- Diagonal or curved section dividers using clip-path`
-      : "";
+    let messages: Array<{ role: string; content: string }> = [];
 
-    const productionBlock = productionMode
-      ? `\n\nPRODUCTION MODE ENABLED — Output must be production-ready:
-- Add comprehensive <head> with: <meta charset>, viewport, description, keywords, author
-- Add OpenGraph meta tags (og:title, og:description, og:type, og:url, og:image placeholder)
-- Add Twitter Card meta tags
-- Add JSON-LD structured data (Organization or Person schema)
-- All interactive elements must have aria-labels
-- Use semantic HTML: <nav>, <main>, <article>, <section>, <aside>, <footer>
-- Add role attributes where appropriate
-- Ensure WCAG AA contrast ratios
-- Add alt text to all images/icons
-- Add <noscript> fallback message
-- Add loading="lazy" to below-fold images
-- Minimize inline JS — keep it clean and well-commented
-- Add print styles (@media print)
-- Preconnect to CDN origins`
-      : "";
+    if (action === "refine") {
+      // Multi-turn refinement: hot-patch existing HTML
+      const { existingHtml, instruction } = body;
+      if (!existingHtml || !instruction) {
+        return new Response(JSON.stringify({ error: "existingHtml and instruction required" }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      const refineSystem = `You are a precision web-page editor. The user will give you an existing HTML document and a refinement instruction. Apply ONLY the requested change while preserving everything else. Output ONLY the complete, updated raw HTML — no markdown fences, no commentary.
 
-    const systemPrompt = `You are an elite web developer and conversion-focused copywriter who creates stunning, production-ready landing pages. You output ONLY raw HTML code — no markdown fences, no explanations, no commentary. Just the complete HTML document.
+Rules:
+- Keep all existing section ids intact unless explicitly asked to rename
+- Keep the same component structure unless asked to change it
+- Preserve TailwindCSS + Anime.js CDN imports
+- Maintain navigation integrity: every nav href must match an existing section id`;
+      messages = [
+        { role: "system", content: refineSystem },
+        { role: "user", content: `EXISTING HTML:\n\`\`\`html\n${existingHtml}\n\`\`\`\n\nINSTRUCTION: ${instruction}\n\nReturn the complete updated HTML.` },
+      ];
+    } else {
+      // Generate
+      const {
+        projectType, title, description, style, primaryColor,
+        pageGoal = "sell", targetAudience = "", emotionalTone = "trust",
+        animationIntensity = 40, layoutComplexity = 30, modernLevel = 50,
+        experimentalMode = false, productionMode = false,
+        personalContext = "", // optional onboarding extra
+      } = body;
 
-COPYWRITING RULES:
-- Write BENEFIT-DRIVEN headlines (e.g., "Ship 10x Faster" not "Our Fast Platform")
-- Use the Problem → Agitation → Solution framework for hero sections
-- Include specific, realistic metrics (e.g., "99.9% uptime", "50% faster deploys", "10,000+ teams")
-- Generate realistic testimonials with names, roles, and companies
-- Every section must have a clear purpose in the conversion funnel
-- Use power words: Transform, Unlock, Accelerate, Revolutionize, Effortless
-- Headlines should be 6-10 words max, punchy and memorable
+      const systemPrompt = buildSystemPrompt({
+        animationIntensity, layoutComplexity, modernLevel,
+        pageGoal, emotionalTone, experimentalMode, productionMode,
+      });
 
-SOCIAL PROOF PATTERNS (include at least 2):
-- Customer logos bar ("Trusted by teams at...")
-- Star ratings with review counts
-- Metric badges ("10,000+ users", "4.9/5 rating", "99.9% uptime")
-- Testimonial cards with avatar, name, role, company, quote
-- "As seen in" media logos
-- Live user count or activity indicator
+      const audienceNote = targetAudience ? `\n- Target Audience: ${targetAudience}` : "";
+      const personalBlock = personalContext
+        ? `\n\nUSER-PROVIDED REAL CONTEXT (use this to replace placeholder copy with real, personal details — names, projects, achievements, links):\n${personalContext}`
+        : "";
 
-COMPONENT SELECTION — Choose and customize from these patterns:
-Heroes (pick 1): Centered with email capture | Split with image | Video background | Gradient with floating shapes | Full-screen with scroll indicator
-Features (pick 1-2): Icon grid (3 or 4 col) | Alternating image-text rows | Tabbed features | Bento grid | Feature comparison table
-Social Proof (pick 1-2): Logo bar | Testimonial carousel/grid | Stats counter section | Case study cards
-Pricing (if goal=sell, include): 3-tier cards with highlighted "Popular" | Simple comparison table | Single plan with feature list
-CTA (pick 1-2): Email capture with incentive | Full-width gradient banner | Floating sticky CTA | Split with benefits list
-
-TECHNICAL REQUIREMENTS:
-- Complete, self-contained HTML5 document
-- Include TailwindCSS via CDN: <script src="https://cdn.tailwindcss.com"></script>
-- Include Anime.js via CDN: <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.2/anime.min.js"></script>
-- Use Inter font from Google Fonts
-- Fully responsive (mobile-first design)
-- Use semantic HTML (header, nav, main, section, footer)
-- Apply the user's chosen primary color throughout (backgrounds, buttons, accents, gradients)
-- Proper contrast ratios for accessibility
-- Subtle box shadows and rounded corners for depth
-
-${animationDirective(animationIntensity)}
-
-${layoutDirective(layoutComplexity)}
-
-${modernDirective(modernLevel)}
-
-${goalDirective(pageGoal)}
-
-${toneDirective(emotionalTone)}${experimentalBlock}${productionBlock}`;
-
-    const audienceNote = targetAudience ? `\n- Target Audience: ${targetAudience}` : "";
-
-    const userPrompt = `Create a landing page with these specifications:
+      const userPrompt = `Create a landing page with these specifications:
 - Project Type: ${projectType}
 - Title: ${title}
 - Description: ${description || "A modern, professional landing page"}
@@ -156,54 +248,51 @@ ${toneDirective(emotionalTone)}${experimentalBlock}${productionBlock}`;
 - Emotional Tone: ${emotionalTone}
 - Animation Level: ${animationIntensity}/100
 - Layout Complexity: ${layoutComplexity}/100
-- Modern Level: ${modernLevel}/100${experimentalMode ? "\n- EXPERIMENTAL MODE: ON — push creative boundaries" : ""}${productionMode ? "\n- PRODUCTION MODE: ON — optimize for real deployment" : ""}
+- Modern Level: ${modernLevel}/100${experimentalMode ? "\n- EXPERIMENTAL MODE: ON" : ""}${productionMode ? "\n- PRODUCTION MODE: ON" : ""}${personalBlock}
 
-Generate a complete, beautiful, conversion-optimized landing page with persuasive copy, social proof, and appropriate animations. Output ONLY the raw HTML code.`;
+Generate a complete, beautiful, conversion-optimized landing page. Output ONLY the raw HTML.`;
 
-    const response = await fetch(
-      "https://ai.gateway.lovable.dev/v1/chat/completions",
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${LOVABLE_API_KEY}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          model: "google/gemini-3-flash-preview",
-          messages: [
-            { role: "system", content: systemPrompt },
-            { role: "user", content: userPrompt },
-          ],
-          stream: false,
-        }),
-      }
-    );
+      messages = [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: userPrompt },
+      ];
+    }
+
+    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${LOVABLE_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "google/gemini-3-flash-preview",
+        messages,
+        stream: false,
+      }),
+    });
 
     if (!response.ok) {
       if (response.status === 429) {
-        return new Response(
-          JSON.stringify({ error: "Rate limit exceeded. Please try again in a moment." }),
-          { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
+        return new Response(JSON.stringify({ error: "Rate limit exceeded. Please try again in a moment." }), {
+          status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
       }
       if (response.status === 402) {
-        return new Response(
-          JSON.stringify({ error: "AI credits exhausted. Please add credits in Settings → Workspace → Usage." }),
-          { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
+        return new Response(JSON.stringify({ error: "AI credits exhausted. Please add credits in Settings → Workspace → Usage." }), {
+          status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
       }
       const errorText = await response.text();
       console.error("AI gateway error:", response.status, errorText);
-      return new Response(
-        JSON.stringify({ error: "Failed to generate landing page" }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      return new Response(JSON.stringify({ error: "Failed to generate landing page" }), {
+        status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     const data = await response.json();
     let html = data.choices?.[0]?.message?.content ?? "";
-
     html = html.replace(/^```html?\s*\n?/i, "").replace(/\n?```\s*$/i, "").trim();
+    html = repairNavManifest(html);
 
     return new Response(JSON.stringify({ html }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
