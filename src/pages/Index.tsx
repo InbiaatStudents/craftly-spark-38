@@ -17,7 +17,7 @@ import ColorPicker from "@/components/ColorPicker";
 import FloatingShapes from "@/components/FloatingShapes";
 import OnboardingChat from "@/components/OnboardingChat";
 import { saveToHistory } from "@/lib/history";
-import type { ProjectType, StylePreference, PageGoal, EmotionalTone, GenerationRequest } from "@/types/landing";
+import type { ProjectType, StylePreference, PageGoal, EmotionalTone } from "@/types/landing";
 import { supabase } from "@/integrations/supabase/client";
 
 const SLIDER_LABELS: Record<string, string[]> = {
